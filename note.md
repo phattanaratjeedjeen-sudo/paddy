@@ -280,3 +280,34 @@ Interpretation: Part 2 isn't leakage in the "cheating" sense — it's the alread
 - Kept: Hectares (dominant, r≈0.995, survives §8-§11 incl. unsupervised PCA) + Variety (small but Bonferroni-significant, η²=0.008).
 - Count check: 1+10+24+4+1+1+1 = 42 removed + 2 kept = 44. ✓
 - Also mentioned: §11's 5 domain-engineered aggregates and PCA components were constructed but not kept (no signal); a "wide" model with Agriblock/Soil/Nursery added back was still explicitly fitted in §14 (M2_wide) as an empirical double-check, and it slightly *underperformed* the narrow model out-of-sample, confirming the §9/§10 decision rather than just asserting it.
+
+---
+## Q: create copy of src/paddy_ML_regression.ipynb but translate into Thai (specific words still prefer English)
+**A:** สร้าง `src/paddy_ML_regression_TH.ipynb` — สำเนาของ notebook เดิมที่แปล markdown ทั้ง 50 cells และ comment ในโค้ด 28 บรรทัดเป็นภาษาไทย โดยคงศัพท์เทคนิคเป็นภาษาอังกฤษ (linear regression, target, feature, leakage, outlier, skewness, heteroscedasticity, ANOVA, PCA, VIF, RMSE/MAPE ฯลฯ) ชื่อคอลัมน์ สูตรคณิตศาสตร์ โค้ด และ outputs ทั้ง 87 ชิ้นไม่ถูกแตะต้อง ไฟล์เดิมไม่เปลี่ยนแปลง
+
+## Q: in section 1 you say we remove Trash but later in section 5 why Trash still live?
+**A:** Good catch — `Trash` was never actually removed from the code's working column list, only flagged. §1.4 excludes it by *domain reasoning* (decision: "EXCLUDE (leakage)"), but the code's `NUM` list (defined in §2, comment: "incl. Trash, kept for the audit only") deliberately keeps it in every subsequent EDA/statistical pass — §5's overview table, §5's 36-panel histogram grid, and §8's correlation/MI tests. This was intentional (it's how §8.3 empirically proves the §1.4 leakage call was right: Trash's r=0.958 with raw yield collapses to partial r=−0.16 once Hectares is controlled for, and to r=−0.03/p=0.19 against the size-adjusted target) — but the notebook never said so clearly in the markdown a reader actually sees, only in a code comment. So it looked like Trash was still an active candidate.
+
+**Fix applied (markdown-only, no computation changed, no re-execution needed):**
+1. §5 header — added an explicit "**Note on `Trash`**" paragraph, up front, before any code: already excluded in §1.4, kept in tables/figures only as a live audit check, never a candidate from here on.
+2. §5.1 discussion — reworded "44 predictors" (which wrongly implied Trash was a live candidate) to "44 non-target columns... but only 43 are real candidates"; reworded the "Trash 17" aside and the "only column rejected up-front" sentence to make the audit-only status explicit at each mention.
+3. §8 header — added the same one-line clarification right where Trash's statistical tests actually run.
+4. §18 conclusion — fixed "reduced 44 candidate columns to two" (wrong — Trash was never a real candidate) to "reduced 43 real candidate columns to two — plus `Trash`, carried along only to empirically confirm its earlier leakage exclusion".
+
+Verified notebook still 99 cells, valid JSON. Synced all four edits into the source pipeline scripts (p2.py, p3.py, p5.py) that build the notebook.
+
+## Q: also check section 2, 4 and 4 too (for the same "declared vs. actual" type inconsistency found with Trash)
+**A:** Interpreted as sections 2, 3, 4 (assumed typo). Verified against actual code/output, not just re-reading prose:
+- §2: `df = raw.drop_duplicates().copy()` genuinely drops duplicates; train/test (§3) built from `df` not `raw`. Cross-checked every number in the discussion cells against real cell output: 451 rows removed (2,789→2,338) = 16.17% ≈ §18's "16.2%" ✓; "812 rows / 361 distinct duplicated records / group sizes {2:293,3:50,4:14,5:4}" ✓ exact match.
+- §3: KS D=0.0308→"0.031", p=0.724→"0.72" ✓; Hectares share "3 ha: 16.9% vs 12.7%" ✓; "25.8%"/"96.2%" duplicate-leakage figures ✓ — all match printed output exactly.
+- §4: "rows per plot size 145/237/277/371/467/139" ✓ matches `tr.Hectares.value_counts()` exactly. The one forward-deferred claim ("largest |z|≈1.9", stated as computed in §6) is honestly flagged as deferred, not silently misstated.
+- Verdict: no `Trash`-style bugs (claim in prose vs. different actual code behavior) found in any of these three sections.
+
+## Q: update the src/paddy_ML_regression_TH.ipynb (sync the Trash-consistency fixes)
+**A:** ตรวจสอบแล้วว่ามีเพียง 4 markdown cells ที่เปลี่ยนในไฟล์ EN หลังจากสร้าง TH copy (cell 33 §5 header, 37 §5.1, 48 §8 header, 98 §18) — code cells และ outputs ไม่เปลี่ยนเลย จึง patch เฉพาะ 4 cells นั้นในฉบับไทย:
+1. §5 header — เพิ่มย่อหน้า "**หมายเหตุเรื่อง `Trash`**": ถูกตัดออกในฐานะ leakage แล้วใน §1.4 คงไว้ในตาราง/รูปเพื่อการ audit เท่านั้น ไม่ใช่ candidate
+2. §5.1 — แก้ "44 predictors" เป็น "44 คอลัมน์ที่ไม่ใช่ target ... แต่มีเพียง 43 ตัวที่เป็น candidate จริง" + ระบุสถานะ audit-only ทุกจุดที่กล่าวถึง Trash
+3. §8 header — เพิ่มบรรทัดชี้แจงเดียวกัน ตรงจุดที่การทดสอบทางสถิติของ Trash รันจริง
+4. §18 — แก้ "ลด 44 คอลัมน์ candidate เหลือ 2" เป็น "ลดคอลัมน์ candidate จริง 43 ตัวเหลือ 2 ตัว — บวกกับ `Trash` ที่พาไปด้วยเพียงเพื่อยืนยันเชิงประจักษ์..."
+
+ยืนยัน: 99 cells, valid JSON, code เหมือน EN ทุกบรรทัด (ยกเว้น comment ที่แปลไทย), outputs ครบ 87 ชิ้น
