@@ -311,3 +311,44 @@ Verified notebook still 99 cells, valid JSON. Synced all four edits into the sou
 4. §18 — แก้ "ลด 44 คอลัมน์ candidate เหลือ 2" เป็น "ลดคอลัมน์ candidate จริง 43 ตัวเหลือ 2 ตัว — บวกกับ `Trash` ที่พาไปด้วยเพียงเพื่อยืนยันเชิงประจักษ์..."
 
 ยืนยัน: 99 cells, valid JSON, code เหมือน EN ทุกบรรทัด (ยกเว้น comment ที่แปลไทย), outputs ครบ 87 ชิ้น
+
+## Q: ส่วน import library ไม่อยากให้ import รวดเดียว ทำให้เหมือน Demo_housing_price_prediction ที่จะค่อยๆ import ในแต่ละ cell ที่มีการใช้ library นั้น
+**A:** แก้เฉพาะ `paddy_ML_regression_TH.ipynb` (ตามคำสั่งล่าสุดให้เน้นไฟล์นี้) — เอาบล็อก import 18 บรรทัดที่รวมไว้ใน cell 1 ออก แล้วกระจายไปไว้ที่ cell แรกที่แต่ละ library ถูกใช้จริงจริง (first-use, สไตล์เดียวกับ Demo ที่ import `pandas`/`numpy`/sklearn ครั้งเดียวตอน cell ที่เริ่มใช้ ไม่ใช่ทุก cell ซ้ำ — ยกเว้น `matplotlib.pyplot` ที่ Demo import ซ้ำในหลาย cell เพราะ plot คนละจุด):
+
+| Cell | Import ที่ย้ายไปวาง |
+|---|---|
+| 1 (setup) | เหลือแค่ `numpy`, `pandas`, `matplotlib.pyplot`, `warnings` — จำเป็นต้องมีตั้งแต่ต้นเพราะ cell นี้เรียก `pd.set_option`, `plt.rcParams` ทันที |
+| 2 (helper functions) | `from scipy import stats` |
+| 3 (§0 flow diagram) | `from matplotlib.patches import FancyBboxPatch, FancyArrowPatch` |
+| 8 (โหลดข้อมูล) | `from pathlib import Path` |
+| 19 (train/test split) | `from sklearn.model_selection import train_test_split` |
+| 23 (§4.1 target distribution) | `from IPython.display import display` |
+| 34 (§5 low-variance rule) | `from sklearn.feature_selection import VarianceThreshold` |
+| 41 (synthetic outlier demo) | `from sklearn.linear_model import LinearRegression` |
+| 46 (MCAR imputation demo) | `from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier` |
+| 52 (§8 mutual information) | `from sklearn.feature_selection import mutual_info_regression` |
+| 63 (correlation cluster heatmap) | เพิ่ม `from scipy.sparse.csgraph import connected_components` เข้าไปในบล็อก local-import ที่ cell นี้มีอยู่แล้ว (`linkage`, `squareform`, `LinearSegmentedColormap`) |
+| 70 (PCA) | `from sklearn.preprocessing import StandardScaler` + `from sklearn.decomposition import PCA` |
+| 74 (preprocessing pipeline) | `from sklearn.compose import ColumnTransformer`, `from sklearn.pipeline import Pipeline`, `from sklearn.impute import SimpleImputer`, `from sklearn.preprocessing import OneHotEncoder` |
+| 82 (K-fold CV) | `from sklearn.model_selection import KFold` |
+
+**ตัด import ที่ไม่เคยถูกใช้จริงในทั้ง notebook ทิ้งไปด้วย** (เดิมแฝงอยู่ในบล็อกรวมของ cell 1 โดยไม่มีผลอะไร): `GroupKFold`, `MinMaxScaler`, `f_regression`, `SelectKBest`, `Markdown` — ตรวจแล้วด้วย grep ทั้งไฟล์ว่าไม่มีจุดใดเรียกใช้เลย (leave-one-block CV ใน §14.4 เขียน loop เองไม่ได้ใช้ `GroupKFold`)
+
+**ตรวจสอบ:**
+- รัน `jupyter run` ทั้งไฟล์จริง (49/49 code cells) ผ่านหมด ไม่มี error เลยแม้แต่ cell เดียว — ยืนยันว่าลำดับ import ถูกต้องและไม่มี NameError จากการอ้างถึงก่อน import
+- Diff กับ `paddy_ML_regression.ipynb` (ภาษาอังกฤษ) หลังตัด import/comment ออกแล้ว logic เหมือนกันทุกบรรทัด (ไม่มี cell ไหนต่างเลย)
+- outputs สดใหม่ครบ 87 ชิ้นจากการรันจริงรอบนี้
+
+## Q: เปลี่ยนการใช้ § เป็น section แทน (เช่น §1 → section 1) ทำเป็น link, เปลี่ยน "วิธีอ่านรายงานนี้" เป็น Table of Contents (ดูตัวอย่างจาก HW01_6810), และไม่ต้องบอกว่า section ไหนตรงกับ rubric ใดหรือมาจาก course chapter ไหน
+**A:** แก้เฉพาะ `paddy_ML_regression_TH.ipynb` ตามที่กำหนดไว้ก่อนหน้านี้ให้เน้นไฟล์นี้ การเปลี่ยนแปลงหลัก 4 ส่วน:
+
+1. **§N → ลิงก์ "Section N"** — แปลงครบทั้ง 169 จุดที่มี `§` ในไฟล์: ใน markdown cell กลายเป็น `[Section N](#anchor)` คลิกได้จริง (anchor คำนวณจากข้อความ heading จริงด้วยอัลกอริทึม slug แบบเดียวกับ GitHub/Jupyter — lowercase, ตัดเครื่องหมายวรรคตอนแต่เก็บตัวอักษร/สระ/วรรณยุกต์ไทยไว้ (Unicode category L/M/N), เว้นวรรค→ยัติภังค์); ใน code comment กลายเป็นข้อความ "Section N" เฉย ๆ (ไม่ทำลิงก์ เพราะ comment render ไม่ได้)
+2. **เพิ่ม "# 0 · ภาพรวมขั้นตอนการทำ ML"** เป็น markdown header cell ใหม่ก่อน flow-diagram cell เดิม เพื่อให้ "Section 0" มี anchor จริงให้ลิงก์ไปหาได้ (เดิมไม่มี heading ใด ๆ รองรับ §0)
+3. **Table of Contents** แทนที่หัวข้อ "### วิธีอ่านรายงานนี้" + ตาราง rubric-mapping + ย่อหน้า "ความรู้จากรายวิชาที่ใช้" ทั้งหมดใน cell แรก ด้วย `## Table of Contents` แบบ nested bullet list มีลิงก์ (สไตล์เดียวกับ HW01_6810) ครอบคลุมทุก section 0–18 พร้อม subsection ที่มีจริง — เก็บย่อหน้าอธิบายวิธีอ่านรายงาน (เหตุผล/assumptions/การตรวจสอบ) ไว้สั้น ๆ ก่อน ToC เพราะไม่เกี่ยวกับ rubric/chapter
+4. **ตัด "(rubric N)" และ "(Ch01: ...)"/"(Ch02: ...)" ออกทั้งหมด** — ทั้งจาก section header (18 จุด) และจากเนื้อหาในย่อหน้า/ตาราง/code comment ที่อ้างอิงบทเรียนแบบแทรกอยู่กลางประโยค (46 จุดเพิ่มเติม) โดยคงเนื้อหาสาระที่อยู่ในวงเล็บไว้ (ตัดเฉพาะคำนำหน้า "ChNN:"/"rubric N" ออก ปรับไวยากรณ์ประโยคเล็กน้อยให้อ่านลื่น) ไม่ได้ลบเนื้อหาความรู้ใด ๆ ทิ้ง
+
+**ตรวจสอบ:**
+- grep ทั้งไฟล์ยืนยัน: เหลือ `§` = 0, "rubric" = 0, "Ch01"/"Ch02" = 0
+- สแกน header ทุกตัวจริงในไฟล์ คำนวณ anchor ใหม่แล้วเทียบกับลิงก์ทั้ง 144 จุด — ไม่มีลิงก์เสียแม้แต่จุดเดียว
+- รัน `jupyter run` ทั้งไฟล์จริง (49/49 code cells) ผ่านหมด ไม่มี error — ยืนยันว่าการแก้ไข code comment/docstring ไม่กระทบ logic
+- โครงสร้าง cell เพิ่มจาก 99 เป็น 100 cells (เพิ่ม header "Section 0" หนึ่ง cell) นอกนั้นเนื้อหาโค้ดเดิมทุกบรรทัด
